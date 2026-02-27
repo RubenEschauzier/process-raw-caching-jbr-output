@@ -185,3 +185,5 @@ fabric.properties
 
 !data/.keep
 data/*
+!raw-outputs/.keep
+raw-outputs/*

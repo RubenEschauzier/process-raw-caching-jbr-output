@@ -65,14 +65,35 @@ def main_process_all_completed(locations):
 
 
 if __name__ == "__main__":
-    raw_data_location_e_m = os.path.join("data", "query-results-raw-e-m.json")
-    raw_data_location_m = os.path.join("data", "query-results-raw-m.json")
-    raw_data_location_default = os.path.join("data", "query-results-raw-default.json")
-    all_locations = [raw_data_location_default, raw_data_location_m, raw_data_location_e_m]
+    raw_data_default_n_b = os.path.join("data", "query-results-raw-default-n-b.json")
+    raw_data_default = os.path.join("data", "query-results-raw-default.json")
 
-    mean_exec_time, num_errors, num_results = main_process_raw_data(all_locations)
+    raw_data_cache_l = os.path.join("data", "query-results-raw-cache-l.json")
+    raw_data_cache_m = os.path.join("data", "query-results-raw-cache-m.json")
+    raw_data_cache_s = os.path.join("data", "query-results-raw-cache-s.json")
+    all_locations_cache = [raw_data_default, raw_data_cache_s, raw_data_cache_m, raw_data_cache_l]
+
+    raw_data_cache_n_b_l = os.path.join("data", "query-results-raw-cache-n-b-l.json")
+    raw_data_cache_n_b_m = os.path.join("data", "query-results-raw-cache-n-b-m.json")
+    raw_data_cache_n_b_s = os.path.join("data", "query-results-raw-cache-n-b-s.json")
+    all_locations_cache_n_b = [raw_data_default_n_b, raw_data_cache_n_b_s, raw_data_cache_n_b_m, raw_data_cache_n_b_l]
+
+    raw_data_query_cache_n_b_l = os.path.join("data", "query-results-raw-query-cache-n-b-l.json")
+    raw_data_query_cache_n_b_m = os.path.join("data", "query-results-raw-query-cache-n-b-m.json")
+    raw_data_query_cache_n_b_s = os.path.join("data", "query-results-raw-query-cache-n-b-s.json")
+    all_locations_query_cache_n_b = [raw_data_default_n_b, raw_data_cache_n_b_s, raw_data_cache_n_b_m, raw_data_cache_n_b_l]
+
+    raw_data_query_cache_estimate_n_b_l = os.path.join("data", "query-results-raw-query-cache-estimate-n-b-l.json")
+    raw_data_query_cache_estimate_n_b_m = os.path.join("data", "query-results-raw-query-cache-estimate-n-b-m.json")
+    raw_data_query_cache_estimate_n_b_s = os.path.join("data", "query-results-raw-query-cache-estimate-n-b-s.json")
+    all_locations_query_cache_estimate_n_b = [raw_data_default_n_b, raw_data_cache_n_b_s, raw_data_cache_n_b_m, raw_data_cache_n_b_l]
+
+
+    mean_exec_time, num_errors, num_results = main_process_raw_data(all_locations_query_cache_estimate_n_b)
     fig, ax1, ax2 = plot_algorithm_comparison_v2(mean_exec_time, num_results)
     plt.show()
-    mean_exec_times_completed, file_to_errors_output = main_process_all_completed(all_locations)
+    mean_exec_times_completed, file_to_errors_output = main_process_all_completed(all_locations_query_cache_estimate_n_b)
     fig, ax1, ax2 = plot_algorithm_comparison_v2(mean_exec_times_completed, file_to_errors_output)
     plt.show()
+
+    #TODO: Make cactus plot

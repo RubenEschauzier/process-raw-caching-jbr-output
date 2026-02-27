@@ -1,5 +1,7 @@
 import json
 from functools import partial
+from xxlimited_35 import Null
+
 import numpy as np
 from statistics import geometric_mean
 
@@ -74,13 +76,21 @@ def get_n_errors(aggregated):
     def sum_errors(aggregated_to_average):
         errors_to_number = [1 if ele is not None else 0 for ele in aggregated_to_average]
         return sum(errors_to_number)
-        pass
 
     def average_proportion_errors(aggregated_to_average):
         errors_to_number = [1 if ele is not None else 0 for ele in aggregated_to_average]
         return sum(errors_to_number) / len(errors_to_number)
-        pass
-
+    error_messages = {
+        key: [
+            {
+                "error_msg": execution_output["error"] if "error" in execution_output else None,
+                "time": execution_output["time"],
+                "results": execution_output["results"]
+            }
+            for execution_output in value
+        ]
+        for key, value in aggregated.items()
+    }
     summed_errors = average_aggregated_data(aggregated, "error", sum_errors, lambda x, i: False)
     proportion_errors = average_aggregated_data(aggregated, "error", average_proportion_errors, lambda x, i: False)
 
