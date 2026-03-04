@@ -1,4 +1,6 @@
 import json
+import re
+from collections import defaultdict
 from functools import partial
 from xxlimited_35 import Null
 
@@ -10,6 +12,90 @@ def load_json(location):
     with open(location, 'r') as f:
         return json.load(f)
 
+def natural_sort_key(s):
+    return [int(text) if text.isdigit() else text.lower()
+            for text in re.split('([0-9]+)', s)]
+
+
+def get_cumulative_data_per_sequence(location, filter_mode="all", drop_always_errors=False):
+    """
+    Extracts and averages sequence data, including execution time and result counts.
+
+    Parameters:
+    location (str): Path to the JSON file.
+    filter_mode (str): Filtering strategy. Options: "all", "refinement_only", "no_refinement".
+    drop_always_errors (bool): Excludes templates that fail in 100% of their executions.
+    """
+    data = load_json(location)
+
+    # Pre-calculate template error rates
+    always_error_templates = set()
+    if drop_always_errors:
+        template_stats = defaultdict(lambda: {'total': 0, 'errors': 0})
+        for entry in data:
+            template = entry.get('sequenceElement', {}).get('template')
+            if template:
+                template_stats[template]['total'] += 1
+                if 'error' in entry:
+                    template_stats[template]['errors'] += 1
+
+        always_error_templates = {
+            tpl for tpl, stats in template_stats.items()
+            if stats['total'] > 0 and stats['total'] == stats['errors']
+        }
+
+    aggregated_by_sequence = aggregate_on(data, ['name'])
+    results = {}
+
+    for seq_name in sorted(aggregated_by_sequence.keys(), key=natural_sort_key):
+        step_times = defaultdict(list)
+        step_result_counts = defaultdict(list)
+
+        for entry in aggregated_by_sequence[seq_name]:
+            try:
+                step_id = int(entry['id'])
+                seq_element = entry.get('sequenceElement', {})
+                template = seq_element.get('template')
+
+                # Exclude templates with a 100% error rate
+                if drop_always_errors and template in always_error_templates:
+                    continue
+
+                ref_meta = seq_element.get('refinementMetadata', {})
+
+                # Updated pattern evaluation logic
+                has_pattern = len(ref_meta.values()) > 0
+
+                # Apply filtering logic
+                if filter_mode == "refinement_only" and not has_pattern:
+                    continue
+                if filter_mode == "no_refinement" and has_pattern:
+                    continue
+
+                step_times[step_id].append(entry.get('time', 0))
+                step_result_counts[step_id].append(entry.get('results', 0))
+
+            except (ValueError, KeyError):
+                continue
+
+        # Skip sequence if filtering removed all entries
+        if not step_times:
+            continue
+
+        # Average metrics for each step across repetitions
+        sorted_step_ids = sorted(step_times.keys())
+        avg_step_times = [np.mean(step_times[sid]) for sid in sorted_step_ids]
+        avg_step_results = [np.mean(step_result_counts[sid]) for sid in sorted_step_ids]
+
+        # Store isolated data per sequence
+        results[seq_name] = {
+            'averages': np.array(avg_step_times),
+            'cumulative': np.cumsum(avg_step_times),
+            'average_results': np.array(avg_step_results),
+            'cumulative_results': np.cumsum(avg_step_results)
+        }
+
+    return results
 
 def get_geo_means(aggregated):
     geo_mean_time = average_aggregated_data(aggregated, "time", geo_mean_number, lambda x, i: False)
@@ -101,7 +187,147 @@ def get_n_errors(aggregated):
                                                               average_proportion_errors,
                                                               exclude_refinement_pattern)
     return summed_errors, proportion_errors, sum_errors_no_refinement, proportion_errors_no_refinement
-    pass
+
+
+def get_cache_metrics_per_sequence(location, filter_mode="all", drop_always_errors=False, timeout_ms=180000):
+    data = load_json(location)
+
+    # Pre-calculate template error rates, including timeouts
+    always_error_templates = set()
+    if drop_always_errors:
+        template_stats = defaultdict(lambda: {'total': 0, 'errors': 0})
+        for entry in data:
+            template = entry.get('sequenceElement', {}).get('template')
+            if template:
+                template_stats[template]['total'] += 1
+                if 'error' in entry or entry.get('time', 0) >= timeout_ms:
+                    template_stats[template]['errors'] += 1
+
+        always_error_templates = {
+            tpl for tpl, stats in template_stats.items()
+            if stats['total'] > 0 and stats['total'] == stats['errors']
+        }
+
+    aggregated_by_sequence = aggregate_on(data, ['name'])
+    results = {}
+
+    for seq_name in sorted(aggregated_by_sequence.keys(), key=natural_sort_key):
+        step_hitrates = defaultdict(list)
+        step_evictions = defaultdict(list)
+
+        for entry in aggregated_by_sequence[seq_name]:
+            try:
+                step_id = int(entry['id'])
+                seq_element = entry.get('sequenceElement', {})
+                template = seq_element.get('template')
+
+                # Apply error filtering
+                if drop_always_errors and template in always_error_templates:
+                    continue
+
+                ref_meta = seq_element.get('refinementMetadata', {})
+                has_pattern = len(ref_meta.values()) > 0
+
+                # Apply mode filtering
+                if filter_mode == "refinement_only" and not has_pattern:
+                    continue
+                if filter_mode == "no_refinement" and has_pattern:
+                    continue
+
+                # Parse cache states
+                cache_state_raw = entry.get('@comunica/persistent-cache-manager:sourceState', '{}')
+                cache_state = json.loads(cache_state_raw)
+
+                hits = cache_state.get('hits', 0)
+                misses = cache_state.get('misses', 0)
+                eviction_pct = cache_state.get('evictionPercentage', 0)
+                http_requests = entry.get('httpRequests', 0)
+
+                denominator = misses + http_requests
+                hitrate = hits / denominator if denominator > 0 else 0.0
+
+                step_hitrates[step_id].append(hitrate)
+                step_evictions[step_id].append(eviction_pct)
+
+            except (ValueError, KeyError, json.JSONDecodeError):
+                continue
+
+        # Skip empty sequences
+        if not step_hitrates:
+            continue
+
+        sorted_step_ids = sorted(step_hitrates.keys())
+        avg_hitrates = [np.mean(step_hitrates[sid]) for sid in sorted_step_ids]
+        avg_evictions = [np.mean(step_evictions[sid]) for sid in sorted_step_ids]
+
+        results[seq_name] = {
+            'hitrates': np.array(avg_hitrates),
+            'eviction_percentages': np.array(avg_evictions)
+        }
+
+    return results
+
+
+def get_raw_metrics(location, filter_mode="all", drop_always_errors=False, timeout_ms=180000):
+    data = load_json(location)
+
+    # Pre-calculate template error rates, including timeouts
+    always_error_templates = set()
+    if drop_always_errors:
+        template_stats = defaultdict(lambda: {'total': 0, 'errors': 0})
+        for entry in data:
+            template = entry.get('sequenceElement', {}).get('template')
+            if template:
+                template_stats[template]['total'] += 1
+                if 'error' in entry or entry.get('time', 0) >= timeout_ms:
+                    template_stats[template]['errors'] += 1
+
+        always_error_templates = {
+            tpl for tpl, stats in template_stats.items()
+            if stats['total'] > 0 and stats['total'] == stats['errors']
+        }
+
+    hit_rates, times, timeouts = [], [], []
+
+    for entry in data:
+        try:
+            seq_element = entry.get('sequenceElement', {})
+            template = seq_element.get('template')
+
+            # Apply error filtering
+            if drop_always_errors and template in always_error_templates:
+                continue
+
+            ref_meta = seq_element.get('refinementMetadata', {})
+            has_pattern = len(ref_meta.values()) > 0
+
+            # Apply mode filtering
+            if filter_mode == "refinement_only" and not has_pattern:
+                continue
+            if filter_mode == "no_refinement" and has_pattern:
+                continue
+
+            time_ms = entry.get('time', 0)
+            is_timeout = 'error' in entry or time_ms >= timeout_ms
+
+            cache_state_raw = entry.get('@comunica/persistent-cache-manager:sourceState', '{}')
+            cache_state = json.loads(cache_state_raw)
+
+            hits = cache_state.get('hits', 0)
+            misses = cache_state.get('misses', 0)
+            http_requests = entry.get('httpRequests', 0)
+
+            denominator = misses + http_requests
+            hitrate = hits / denominator if denominator > 0 else 0.0
+
+            hit_rates.append(hitrate)
+            times.append(time_ms)
+            timeouts.append(is_timeout)
+
+        except (ValueError, KeyError, json.JSONDecodeError):
+            continue
+
+    return np.array(hit_rates), np.array(times), np.array(timeouts)
 
 
 def get_n_results(aggregated):
@@ -163,7 +389,6 @@ def average_aggregated_data(aggregated, average_key, average_function, exclusion
         average = average_function(selected)
         averaged_results[agg_key] = average
     return averaged_results
-
 
 # TODO: Within sequence look into deviation from average over sequence elements, to show cache working or not (done)
 # TODO: Deviation of mean within refinements sequence (done)
