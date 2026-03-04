@@ -97,7 +97,7 @@ def plot_cumulative_churn(files, filter_mode="all"):
         print(f"Churn plot saved to {output_path}")
 
 
-def plot_sequence_cache_state(files, filter_mode="all", drop_always_errors=False):
+def plot_sequence_cache_state(files, output_path, filter_mode="all", drop_always_errors=False):
     """
     Generates a sequence-aligned plot comparing cache hit rates (lines)
     and eviction percentages (bars).
@@ -167,7 +167,7 @@ def plot_sequence_cache_state(files, filter_mode="all", drop_always_errors=False
 
         # Format output filename
         safe_seq_name = str(seq_name).replace(" ", "_").lower()
-        output_path = f"cache_state_{safe_seq_name}_{filter_mode}.png"
+        output_path = os.path.join(output_path, "cache_state_{safe_seq_name}_{filter_mode}.png")
 
         fig.savefig(output_path, dpi=300, bbox_inches='tight')
         plt.close(fig)

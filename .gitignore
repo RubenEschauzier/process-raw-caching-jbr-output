@@ -187,3 +187,7 @@ fabric.properties
 data/*
 !raw-outputs/.keep
 raw-outputs/*
+
+!output/cache_metric_figures/.keep
+!output/execution_time_figures/.keep
+output/*
