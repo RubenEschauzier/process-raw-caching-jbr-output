@@ -10,7 +10,7 @@ import re
 from src.load_raw_data import get_cumulative_data_per_sequence, get_raw_metrics
 
 
-def plot_cactus(files, filter_mode="all", drop_always_errors=True):
+def plot_cactus(files, output_dir, filter_mode="all", drop_always_errors=True):
     """
     Generates a cactus plot of sorted query execution times.
     """
@@ -50,12 +50,12 @@ def plot_cactus(files, filter_mode="all", drop_always_errors=True):
     fig.tight_layout()
 
     # Format output filename
-    output_path = f"cactus_plot_{filter_mode}.png"
+    output_path = os.path.join(output_dir, f"cactus_plot_{filter_mode}.png")
     fig.savefig(output_path, dpi=300)
     plt.close(fig)
     print(f"Cactus plot saved to {output_path}")
 
-def main(files=None):
+def main(output_dir, files=None):
     if not files:
         pattern = os.path.join("data", "query-results-raw-*.json")
         files = glob.glob(pattern)
@@ -118,7 +118,7 @@ def main(files=None):
 
         # Format output filename
         safe_seq_name = str(seq_name).replace(" ", "_").lower()
-        output_path = f"cumulative_plot_{safe_seq_name}.png"
+        output_path = os.path.join(output_dir, f"cumulative_plot_{safe_seq_name}.png")
 
         # Use bbox_inches='tight' to prevent the external legend from being cropped
         fig.savefig(output_path, dpi=300, bbox_inches='tight')
@@ -162,4 +162,5 @@ if __name__ == "__main__":
     #     all_locations_query_cache_estimate_n_b
     # )
 
-    plot_cactus(all_locations_query_cache_estimate_n_b, drop_always_errors=True)
+    plot_cactus(all_locations_query_cache_estimate_n_b,
+                "output/execution_time_figures", drop_always_errors=True)

@@ -1,20 +1,12 @@
-import os
-import json
-from collections import defaultdict
-
 import numpy as np
 import matplotlib.pyplot as plt
 
 import os
 import glob
 
-from load_raw_data import load_json, aggregate_on, get_raw_metrics, get_cache_metrics_per_sequence
+from load_raw_data import get_raw_metrics, get_cache_metrics_per_sequence
 
-import json
-from collections import defaultdict
-
-
-def plot_correlation_scatter(files, filter_mode = "all"):
+def plot_correlation_scatter(files, output_dir, filter_mode ="all"):
     """Generates a scatter plot of Cache Hit Rate vs. Log(Execution Time)."""
     plt.figure(figsize=(10, 6))
     all_data = {}
@@ -54,12 +46,12 @@ def plot_correlation_scatter(files, filter_mode = "all"):
     plt.grid(True, which="both", ls="--", alpha=0.3)
     plt.tight_layout()
 
-    plt.savefig('scatter_cache_vs_time.png', dpi=300)
+    plt.savefig(os.path.join(output_dir, 'scatter_cache_vs_time.png'), dpi=300)
     plt.close()
     print("Scatter plot saved to scatter_cache_vs_time.png")
 
 
-def plot_cumulative_churn(files, filter_mode="all"):
+def plot_cumulative_churn(files, output_dir, filter_mode="all", ):
     """Generates step plots showing cumulative cache evictions per sequence."""
     sequence_data = {}
 
@@ -90,14 +82,14 @@ def plot_cumulative_churn(files, filter_mode="all"):
         plt.tight_layout()
 
         safe_seq_name = str(seq_name).replace(" ", "_").lower()
-        output_path = f"cumulative_churn_{safe_seq_name}.png"
+        output_path = os.path.join(output_dir, f"cumulative_churn_{safe_seq_name}.png")
 
         plt.savefig(output_path, dpi=300)
         plt.close()
         print(f"Churn plot saved to {output_path}")
 
 
-def plot_sequence_cache_state(files, output_path, filter_mode="all", drop_always_errors=False):
+def plot_sequence_cache_state(files, output_dir, filter_mode="all", drop_always_errors=False):
     """
     Generates a sequence-aligned plot comparing cache hit rates (lines)
     and eviction percentages (bars).
@@ -167,7 +159,7 @@ def plot_sequence_cache_state(files, output_path, filter_mode="all", drop_always
 
         # Format output filename
         safe_seq_name = str(seq_name).replace(" ", "_").lower()
-        output_path = os.path.join(output_path, "cache_state_{safe_seq_name}_{filter_mode}.png")
+        output_path = os.path.join(output_dir, f"cache_state_{safe_seq_name}_{filter_mode}.png")
 
         fig.savefig(output_path, dpi=300, bbox_inches='tight')
         plt.close(fig)
@@ -188,14 +180,14 @@ def main():
 
     # 1. Generate Correlation Scatter Plot (Global)
     print("Generating correlation scatter plot...")
-    plot_correlation_scatter(files, "no_refinement")
+    plot_correlation_scatter(files, "output/cache_metric_figures", "no_refinement")
 
     # 2. Generate Cumulative Churn Step Plots (Per Sequence)
     print("Generating cumulative churn plots...")
-    plot_cumulative_churn(files, "no_refinement")
+    plot_cumulative_churn(files, "output/cache_metric_figures", "no_refinement")
 
     print("Generating cache state plots...")
-    plot_sequence_cache_state(files)
+    plot_sequence_cache_state(files, "output/cache_metric_figures")
     print("All plots generated successfully.")
 
 
