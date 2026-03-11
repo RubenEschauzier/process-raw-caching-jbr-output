@@ -243,7 +243,7 @@ def get_cache_metrics_per_sequence(location, filter_mode="all", drop_always_erro
                 eviction_pct = cache_state.get('evictionPercentage', 0)
                 http_requests = entry.get('httpRequests', 0)
 
-                denominator = misses + http_requests
+                denominator = misses + hits
                 hitrate = hits / denominator if denominator > 0 else 0.0
 
                 step_hitrates[step_id].append(hitrate)
@@ -287,7 +287,7 @@ def get_raw_metrics(location, filter_mode="all", drop_always_errors=False, timeo
             if stats['total'] > 0 and stats['total'] == stats['errors']
         }
 
-    hit_rates, times, timeouts = [], [], []
+    hit_rates, times, timeouts, http_requests, results = [], [], [], [], []
 
     for entry in data:
         try:
@@ -315,19 +315,22 @@ def get_raw_metrics(location, filter_mode="all", drop_always_errors=False, timeo
 
             hits = cache_state.get('hits', 0)
             misses = cache_state.get('misses', 0)
-            http_requests = entry.get('httpRequests', 0)
+            http_request_count = entry.get('httpRequests', 0)
+            result_count = entry.get('results', 0)
 
-            denominator = misses + http_requests
+            denominator = misses + hits
             hitrate = hits / denominator if denominator > 0 else 0.0
 
             hit_rates.append(hitrate)
             times.append(time_ms)
             timeouts.append(is_timeout)
+            http_requests.append(http_request_count)
+            results.append(result_count)
 
         except (ValueError, KeyError, json.JSONDecodeError):
             continue
 
-    return np.array(hit_rates), np.array(times), np.array(timeouts)
+    return np.array(hit_rates), np.array(times), np.array(timeouts), np.array(http_requests), np.array(results)
 
 
 def get_n_results(aggregated):

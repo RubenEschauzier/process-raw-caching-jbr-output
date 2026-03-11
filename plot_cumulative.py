@@ -1,6 +1,8 @@
 import json
 import os
+from argparse import ArgumentError
 from collections import defaultdict
+from typing import Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,7 +12,9 @@ import re
 from src.load_raw_data import get_cumulative_data_per_sequence, get_raw_metrics
 
 
-def plot_cactus(files, output_dir, filter_mode="all", drop_always_errors=True):
+def plot_cactus(files, output_dir, plotted_value: Literal["exec_time", "http_requests", "results"],
+                y_label, title, filter_timeouts = False,
+                filter_mode="all", drop_always_errors=True, log_y_axis=True):
     """
     Generates a cactus plot of sorted query execution times.
     """
@@ -23,25 +27,35 @@ def plot_cactus(files, output_dir, filter_mode="all", drop_always_errors=True):
         label = os.path.basename(path).replace("query-results-raw-", "").replace(".json", "")
 
         # Extract unaggregated metrics
-        _, times, timeouts = get_raw_metrics(
+        _, times, timeouts, http_requests, results = get_raw_metrics(
             path,
             filter_mode=filter_mode,
             drop_always_errors=drop_always_errors
         )
 
         # Filter out timeouts and sort the successful execution times
-        valid_times = times[~timeouts]
-        sorted_times = np.sort(valid_times) / 1000  # Convert to seconds
-
+        if plotted_value == "exec_time":
+            if filter_timeouts:
+                valid_times = times[~timeouts]
+            else:
+                valid_times = times
+            sorted_values = np.sort(valid_times) / 1000
+        elif plotted_value == 'http_requests':
+            sorted_values = np.sort(http_requests)
+        elif plotted_value == 'results':
+            sorted_values = np.sort(results)
+        else:
+            raise ValueError(f"Invalid argument for plotted_value {plotted_value}")
+        plot_data = np.cumsum(sorted_values)
         # X-axis represents the count of successfully solved queries
-        x_axis = np.arange(1, len(sorted_times) + 1)
+        x_axis = np.arange(1, len(plot_data) + 1)
 
-        ax.plot(x_axis, sorted_times, label=label, color=colors[idx], linewidth=2, alpha=0.9)
-
-    ax.set_yscale('log')
+        ax.plot(x_axis, plot_data, label=label, color=colors[idx], linewidth=2, alpha=0.9)
+    if log_y_axis:
+        ax.set_yscale('log')
     ax.set_xlabel('Number of Solved Queries', fontsize=12)
-    ax.set_ylabel('Execution Time (s, log scale)', fontsize=12)
-    ax.set_title(f'Cactus Plot: Global Algorithm Performance\nFilter: {filter_mode}', fontsize=14)
+    ax.set_ylabel(y_label, fontsize=12)
+    ax.set_title(title, fontsize=14)
 
     # Position legend outside to maintain readability for 14 algorithms
     ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize='small')
@@ -50,7 +64,7 @@ def plot_cactus(files, output_dir, filter_mode="all", drop_always_errors=True):
     fig.tight_layout()
 
     # Format output filename
-    output_path = os.path.join(output_dir, f"cactus_plot_{filter_mode}.png")
+    output_path = os.path.join(output_dir, f"cactus_plot_{filter_mode}_{plotted_value}.png")
     fig.savefig(output_path, dpi=300)
     plt.close(fig)
     print(f"Cactus plot saved to {output_path}")
@@ -140,7 +154,7 @@ if __name__ == "__main__":
     raw_data_cache_n_b_l = os.path.join("data", "query-results-raw-cache-n-b-l.json")
     raw_data_cache_n_b_m = os.path.join("data", "query-results-raw-cache-n-b-m.json")
     raw_data_cache_n_b_s = os.path.join("data", "query-results-raw-cache-n-b-s.json")
-    all_locations_cache_n_b = [raw_data_default_n_b, raw_data_cache_n_b_s, raw_data_cache_n_b_m, raw_data_cache_n_b_l]
+    all_locations_cache_n_b = [raw_data_default, raw_data_cache_n_b_s, raw_data_cache_n_b_m, raw_data_cache_n_b_l]
     # main(
     #     all_locations_cache_n_b
     # )
@@ -148,7 +162,7 @@ if __name__ == "__main__":
     raw_data_query_cache_n_b_l = os.path.join("data", "query-results-raw-query-cache-n-b-l.json")
     raw_data_query_cache_n_b_m = os.path.join("data", "query-results-raw-query-cache-n-b-m.json")
     raw_data_query_cache_n_b_s = os.path.join("data", "query-results-raw-query-cache-n-b-s.json")
-    all_locations_query_cache_n_b = [raw_data_default_n_b, raw_data_cache_n_b_s, raw_data_cache_n_b_m, raw_data_cache_n_b_l]
+    all_locations_query_cache_n_b = [raw_data_default, raw_data_cache_n_b_s, raw_data_cache_n_b_m, raw_data_cache_n_b_l]
     # main(
     #     all_locations_query_cache_n_b
     # )
@@ -156,11 +170,36 @@ if __name__ == "__main__":
     raw_data_query_cache_estimate_n_b_l = os.path.join("data", "query-results-raw-query-cache-estimate-n-b-l.json")
     raw_data_query_cache_estimate_n_b_m = os.path.join("data", "query-results-raw-query-cache-estimate-n-b-m.json")
     raw_data_query_cache_estimate_n_b_s = os.path.join("data", "query-results-raw-query-cache-estimate-n-b-s.json")
-    all_locations_query_cache_estimate_n_b = [raw_data_default_n_b, raw_data_cache_n_b_s, raw_data_cache_n_b_m, raw_data_cache_n_b_l]
+    all_locations_query_cache_estimate_n_b = [raw_data_default, raw_data_cache_n_b_s, raw_data_cache_n_b_m, raw_data_cache_n_b_l]
 
     # main(
     #     all_locations_query_cache_estimate_n_b
     # )
-
-    plot_cactus(all_locations_query_cache_estimate_n_b,
-                "output/execution_time_figures", drop_always_errors=True)
+    filter_mode = "all"
+    plot_cactus(all_locations_cache,
+                plotted_value="exec_time",
+                y_label="Execution Time (s, log scale)",
+                title=f'Cactus Plot: Global Algorithm Performance\nFilter: {filter_mode}',
+                filter_timeouts=False,
+                filter_mode=filter_mode,
+                output_dir="output/execution_time_figures",
+                drop_always_errors=True,
+                log_y_axis=True)
+    plot_cactus(all_locations_cache,
+                plotted_value="http_requests",
+                y_label="HTTP Requests (s, log scale)",
+                title=f'Cactus Plot: Cumulative HTTP requests over all queries\nFilter: {filter_mode}',
+                filter_timeouts=False,
+                filter_mode=filter_mode,
+                output_dir="output/execution_time_figures",
+                drop_always_errors=False,
+                log_y_axis=True)
+    plot_cactus(all_locations_cache,
+                plotted_value="results",
+                y_label="Produced Results (s, log scale)",
+                title=f'Cactus Plot: Cumulative produced results over all queries\nFilter: {filter_mode}',
+                filter_timeouts=False,
+                filter_mode=filter_mode,
+                output_dir="output/execution_time_figures",
+                drop_always_errors=False,
+                log_y_axis=False)

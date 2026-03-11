@@ -6,50 +6,64 @@ import glob
 
 from load_raw_data import get_raw_metrics, get_cache_metrics_per_sequence
 
-def plot_correlation_scatter(files, output_dir, filter_mode ="all"):
-    """Generates a scatter plot of Cache Hit Rate vs. Log(Execution Time)."""
-    plt.figure(figsize=(10, 6))
+import os
+import matplotlib.pyplot as plt
+import numpy as np
+
+
+def plot_correlation_scatter(files, output_dir, filter_mode="all"):
+    """
+    Generates a separate scatter plot of Cache Hit Rate vs. Log(Execution Time) for each file.
+    """
     all_data = {}
     max_time = 0
 
-    # 1. Parse raw data and find global max time for timeout placement
+    # 1. Parse raw data and find the global maximum time for consistent timeout placement
     for path in sorted(files):
         label = os.path.basename(path).replace("query-results-raw-", "").replace(".json", "")
+        # Assuming get_raw_metrics is defined elsewhere in your script
         hit_rates, times, timeouts = get_raw_metrics(path, filter_mode=filter_mode)
 
         if len(times) > 0:
             max_time = max(max_time, np.max(times))
+
         all_data[label] = (hit_rates, times, timeouts)
 
-    # Place timeouts 50% higher than the maximum recorded execution time
+    # Calculate timeout y-value (50% higher than the global maximum execution time)
     timeout_y_val = (max_time * 1.5) / 1000 if max_time > 0 else 300
 
-    # 2. Plot data points
+    # 2. Generate and save a separate plot for each file
     for label, (hit_rates, times, timeouts) in all_data.items():
+        plt.figure(figsize=(10, 6))
+
         valid_idx = ~timeouts
         timeout_idx = timeouts
 
-        # Standard executions
+        # Plot standard executions
         plt.scatter(hit_rates[valid_idx], times[valid_idx] / 1000,
-                    label=label, alpha=0.6, edgecolors='w', linewidth=0.5)
+                    alpha=0.6, edgecolors='w', linewidth=0.5, label='Completed')
 
-        # Timeouts
+        # Plot timeouts
         if np.any(timeout_idx):
             plt.scatter(hit_rates[timeout_idx], [timeout_y_val] * np.sum(timeout_idx),
-                        marker='x', color='red', s=50, label=f'{label} (Timeout)')
+                        marker='x', color='red', s=50, label='Timeout')
 
-    plt.yscale('log')
-    plt.xlabel('Cache Hit Rate', fontsize=12)
-    plt.ylabel('Execution Time (s, log scale)', fontsize=12)
-    plt.title('Correlation: Cache Efficiency vs. Query Execution Speed', fontsize=14)
-    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize='small')
-    plt.grid(True, which="both", ls="--", alpha=0.3)
-    plt.tight_layout()
+        # Formatting
+        plt.yscale('log')
+        plt.xlabel('Cache Hit Rate', fontsize=12)
+        plt.ylabel('Execution Time (s, log scale)', fontsize=12)
+        plt.title(f'Cache Efficiency vs. Execution Speed: {label}', fontsize=14)
+        plt.legend(loc='upper right', fontsize='small')
+        plt.grid(True, which="both", ls="--", alpha=0.3)
+        plt.tight_layout()
 
-    plt.savefig(os.path.join(output_dir, 'scatter_cache_vs_time.png'), dpi=300)
-    plt.close()
-    print("Scatter plot saved to scatter_cache_vs_time.png")
+        # Save individual plot
+        output_file = f'scatter_cache_vs_time_{label}.png'
+        output_path = os.path.join(output_dir, output_file)
+        plt.savefig(output_path, dpi=300)
+        plt.close()
 
+        print(f"Scatter plot saved to {output_path}")
 
 def plot_cumulative_churn(files, output_dir, filter_mode="all", ):
     """Generates step plots showing cumulative cache evictions per sequence."""
