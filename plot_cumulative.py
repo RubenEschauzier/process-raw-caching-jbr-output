@@ -172,34 +172,58 @@ if __name__ == "__main__":
     raw_data_query_cache_estimate_n_b_s = os.path.join("data", "query-results-raw-query-cache-estimate-n-b-s.json")
     all_locations_query_cache_estimate_n_b = [raw_data_default, raw_data_cache_n_b_s, raw_data_cache_n_b_m, raw_data_cache_n_b_l]
 
+    raw_data_query_cache_estimate_m = os.path.join("data", "query-results-raw-query-cache-estimate-m.json")
+    raw_data_query_cache_estimate_s = os.path.join("data", "query-results-raw-query-cache-estimate-s.json")
+    raw_data_query_cache_estimate_l = os.path.join("data", "query-results-raw-query-cache-estimate-l.json")
+
+    all_locations_query_cache_estimate_v2 = [raw_data_query_cache_estimate_s, raw_data_query_cache_estimate_m,
+                                             raw_data_query_cache_estimate_l,
+                                             raw_data_default]
+
+    raw_data_cache_m = os.path.join("data", "query-results-raw-cache-m.json")
+    raw_data_cache_s = os.path.join("data", "query-results-raw-cache-s.json")
+
+    all_locations_cache_v2 = [raw_data_cache_s, raw_data_cache_m, raw_data_default]
+
+
     # main(
     #     all_locations_query_cache_estimate_n_b
     # )
     filter_mode = "all"
-    plot_cactus(all_locations_cache,
+    plot_cactus(all_locations_query_cache_estimate_v2,
                 plotted_value="exec_time",
                 y_label="Execution Time (s, log scale)",
                 title=f'Cactus Plot: Global Algorithm Performance\nFilter: {filter_mode}',
                 filter_timeouts=False,
                 filter_mode=filter_mode,
                 output_dir="output/execution_time_figures",
-                drop_always_errors=True,
-                log_y_axis=True)
-    plot_cactus(all_locations_cache,
-                plotted_value="http_requests",
-                y_label="HTTP Requests (s, log scale)",
-                title=f'Cactus Plot: Cumulative HTTP requests over all queries\nFilter: {filter_mode}',
-                filter_timeouts=False,
-                filter_mode=filter_mode,
-                output_dir="output/execution_time_figures",
                 drop_always_errors=False,
                 log_y_axis=True)
-    plot_cactus(all_locations_cache,
-                plotted_value="results",
-                y_label="Produced Results (s, log scale)",
-                title=f'Cactus Plot: Cumulative produced results over all queries\nFilter: {filter_mode}',
-                filter_timeouts=False,
-                filter_mode=filter_mode,
-                output_dir="output/execution_time_figures",
-                drop_always_errors=False,
-                log_y_axis=False)
+    main("output")
+    # plot_cactus(all_locations_cache,
+    #             plotted_value="exec_time",
+    #             y_label="Execution Time (s, log scale)",
+    #             title=f'Cactus Plot: Global Algorithm Performance\nFilter: {filter_mode}',
+    #             filter_timeouts=False,
+    #             filter_mode=filter_mode,
+    #             output_dir="output/execution_time_figures",
+    #             drop_always_errors=True,
+    #             log_y_axis=True)
+    # plot_cactus(all_locations_cache,
+    #             plotted_value="http_requests",
+    #             y_label="HTTP Requests (s, log scale)",
+    #             title=f'Cactus Plot: Cumulative HTTP requests over all queries\nFilter: {filter_mode}',
+    #             filter_timeouts=False,
+    #             filter_mode=filter_mode,
+    #             output_dir="output/execution_time_figures",
+    #             drop_always_errors=False,
+    #             log_y_axis=True)
+    # plot_cactus(all_locations_cache,
+    #             plotted_value="results",
+    #             y_label="Produced Results (s, log scale)",
+    #             title=f'Cactus Plot: Cumulative produced results over all queries\nFilter: {filter_mode}',
+    #             filter_timeouts=False,
+    #             filter_mode=filter_mode,
+    #             output_dir="output/execution_time_figures",
+    #             drop_always_errors=False,
+    #             log_y_axis=False)
