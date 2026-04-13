@@ -535,7 +535,7 @@ def plot_refinement_sequence_performance(files: List[str], output_dir=None, file
     Calculates and plots the average cumulative hit rate and cumulative evictions per step.
     """
     records = []
-
+    #TODO: This is wrong!
     for path in sorted(files):
         algo_label = os.path.basename(path).replace("query-results-raw-", "").replace(".json", "")
 
