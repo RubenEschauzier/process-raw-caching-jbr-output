@@ -180,17 +180,18 @@ if __name__ == "__main__":
                                              raw_data_query_cache_estimate_l,
                                              raw_data_default]
 
-    raw_data_cache_m = os.path.join("data", "query-results-raw-cache-m.json")
     raw_data_cache_s = os.path.join("data", "query-results-raw-cache-s.json")
+    raw_data_query_cache_s = os.path.join("data", "query-results-raw-query-cache-s.json")
+    raw_data_query_cache_estimate_s = os.path.join("data", "query-results-raw-query-cache-estimate-s.json")
 
-    all_locations_cache_v2 = [raw_data_cache_s, raw_data_cache_m, raw_data_default]
+    all_locations_cache_v2 = [raw_data_default, raw_data_cache_s, raw_data_query_cache_s, raw_data_query_cache_estimate_s]
 
 
     # main(
     #     all_locations_query_cache_estimate_n_b
     # )
     filter_mode = "all"
-    plot_cactus(all_locations_query_cache_estimate_v2,
+    plot_cactus(all_locations_cache_v2,
                 plotted_value="exec_time",
                 y_label="Execution Time (s, log scale)",
                 title=f'Cactus Plot: Global Algorithm Performance\nFilter: {filter_mode}',
@@ -198,7 +199,7 @@ if __name__ == "__main__":
                 filter_mode=filter_mode,
                 output_dir="output/execution_time_figures",
                 drop_always_errors=False,
-                log_y_axis=True)
+                log_y_axis=False)
     main("output")
     # plot_cactus(all_locations_cache,
     #             plotted_value="exec_time",
