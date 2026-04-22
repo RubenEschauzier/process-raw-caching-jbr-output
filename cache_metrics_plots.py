@@ -711,18 +711,18 @@ def main():
     # print("Generating correlation scatter plot...")
     # plot_correlation_scatter(files, "output/cache_metric_figures", "no_refinement")
     #
-    # print("Generating cumulative churn plots...")
-    # plot_cumulative_churn(files, "output/cache_metric_figures", "no_refinement")
+    print("Generating cumulative churn plots...")
+    plot_cumulative_churn(files, "output/cache_metric_figures", "no_refinement")
     #
-    # print("Generating cache state plots...")
-    # plot_sequence_cache_state(files, "output/cache_metric_figures")
+    print("Generating cache state plots...")
+    plot_sequence_cache_state(files, "output/cache_metric_figures")
     # print("All plots generated successfully.")
     #
-    # print("Generating hitrate on switch dataframe")
-    # df_switches = calculate_session_hit_rates(files)
-    # print(tabulate(df_switches, headers='keys', tablefmt='psql'))
-    # df_switch_effect = calculate_switch_effect(files)
-    # print(tabulate(df_switch_effect, headers='keys', tablefmt='psql'))
+    print("Generating hitrate on switch dataframe")
+    df_switches = calculate_session_hit_rates(files)
+    print(tabulate(df_switches, headers='keys', tablefmt='psql'))
+    df_switch_effect = calculate_switch_effect(files)
+    print(tabulate(df_switch_effect, headers='keys', tablefmt='psql'))
 
     # Plot large cache implementations
     # plot_eviction_impact([file for file in files if "-l" in file],
