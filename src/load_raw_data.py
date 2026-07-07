@@ -1,7 +1,9 @@
+import hashlib
 import json
 import re
 from collections import defaultdict
 from functools import partial
+from pathlib import Path
 from xxlimited_35 import Null
 
 import numpy as np
@@ -481,3 +483,61 @@ def hashable(v):
     except TypeError:
         return False
     return True
+
+
+def generate_md5_hash(query_string: str) -> str:
+    """Generates an MD5 hash of the query string to match the Node.js implementation."""
+    return hashlib.md5(query_string.encode('utf-8')).hexdigest()
+
+
+def yield_sequence_topologies(sparql_dir: str, topology_dir: str, max_sequences=None):
+    """
+    Generator that reads SPARQL queries and yields their timestamped topology files
+    one sequence at a time. Files are processed in alphabetical order.
+    """
+    sparql_path = Path(sparql_dir)
+    topology_path = Path(topology_dir)
+
+    # Sort files alphabetically to guarantee consistent processing order
+    sparql_files = sorted(list(sparql_path.glob('*.sparql')))
+
+    for i, sparql_file in enumerate(sparql_files):
+        # Adjust limit logic (>= ensures exactly max_sequences are yielded)
+        if max_sequences is not None and i >= max_sequences:
+            break
+
+        sequence_name = sparql_file.stem
+        sequence_data = []
+
+        with open(sparql_file, 'r', encoding='utf-8') as file:
+            content = file.read().strip()
+            queries = [q.strip() for q in content.split('\n\n') if q.strip()]
+
+        for query_string in queries:
+            query_hash = generate_md5_hash(query_string)
+
+            # Find all topology files matching the hash, explicitly excluding .tmp files
+            matching_files = [
+                f for f in topology_path.glob(f"*-{query_hash}.json")
+                if not f.name.endswith('.tmp')
+            ]
+
+            # Sort chronologically by the timestamp prefix to order the repetitions
+            matching_files.sort(key=lambda p: int(p.name.split('-')[0]))
+
+            topologies = []
+            for topo_file in matching_files:
+                try:
+                    with open(topo_file, 'r', encoding='utf-8') as tf:
+                        topologies.append(json.load(tf))
+                except json.JSONDecodeError:
+                    print(f"Warning: Failed to decode JSON from {topo_file.name}. Skipping.")
+
+            sequence_data.append({
+                "queryString": query_string,
+                "topologies": topologies
+            })
+
+        # Yield a single sequence dict and pause execution
+        yield sequence_name, {"sequence": sequence_data}
+

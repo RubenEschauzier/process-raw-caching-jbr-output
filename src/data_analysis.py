@@ -16,11 +16,17 @@ def get_algorithm_labels(locations):
         else:
             return clean_name  # Fallback if no valid size suffix exists
 
-        # Apply mapping rules
         mapping = {
             'cache': 'unindexed-cache',
             'query-cache': 'indexed-cache',
-            'query-cache-estimate': 'indexed-cache-estimation'
+            'query-cache-estimate': 'indexed-cache-estimation',
+            'unindexed': 'unindexed-cache',
+            'index': 'indexed-cache',
+            'index-e': 'indexed-cache-estimation',
+            'index-e-o': 'indexed-cache-estimation-offline-traversal',
+            'store': 'indexed-store',
+            'store-e': 'indexed-store-estimation',
+            'store-e-o': 'indexed-store-estimation-offline-traversal',
         }
 
         mapped_type = mapping.get(base_type, base_type)
