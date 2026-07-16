@@ -237,7 +237,11 @@ def get_cache_metrics_per_sequence(location, filter_mode="all", drop_always_erro
                     continue
 
                 # Parse cache states
-                cache_state_raw = entry.get('@comunica/persistent-cache-manager:sourceState', '{}')
+                cache_state_raw = entry.get("@comunica/persistent-cache-manager:sourceState") or \
+                            entry.get("@comunica/persistent-cache-manager:sourceStateQuerySource") or \
+                            entry.get("@comunica/persistent-cache-manager:cacheSourceStateIndexedDisk") or \
+                            entry.get("@comunica/persistent-cache-manager:cacheSourceStateIndexedQuadStore")
+
                 cache_state = json.loads(cache_state_raw)
 
                 hits = cache_state.get('hits', 0)
@@ -312,7 +316,10 @@ def get_raw_metrics(location, filter_mode="all", drop_always_errors=False, timeo
             time_ms = entry.get('time', 0)
             is_timeout = 'error' in entry or time_ms >= timeout_ms
 
-            cache_state_raw = entry.get('@comunica/persistent-cache-manager:sourceState', '{}')
+            cache_state_raw = entry.get("@comunica/persistent-cache-manager:sourceState") or \
+                              entry.get("@comunica/persistent-cache-manager:sourceStateQuerySource") or \
+                              entry.get("@comunica/persistent-cache-manager:cacheSourceStateIndexedDisk") or \
+                              entry.get("@comunica/persistent-cache-manager:cacheSourceStateIndexedQuadStore")
             cache_state = json.loads(cache_state_raw)
 
             hits = cache_state.get('hits', 0)
